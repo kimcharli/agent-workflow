@@ -40,3 +40,10 @@ Deferred: 2026-07-26
 Area: `scripts/`, local `.git/hooks/`
 Why not now: It introduces a dependency on local git configuration and might disrupt human developers' workflows if they aren't accustomed to strict local commit hooks rejecting their work. 
 Revisit when: Remote CI pipeline failures (caused by agents bloating `AGENTS.md` past the line cap) become frequent enough that the delayed feedback loop is noticeably slowing down development.
+
+## Lightweight synchronization script for upstream framework distribution
+
+Deferred: 2026-07-26
+Area: `scripts/sync-workflow.sh`, `agent-workflow.manifest`
+Why not now: Until multiple consumer repositories adopt the framework and actually attempt to pull upstream improvements, the exact friction points of the "copy and commit" model are unknown. Building a sync tool now would be premature optimization based on assumptions.
+Revisit when: Two or more repositories are using the framework and need to seamlessly pull a new release, or when a consumer wants to easily push a generalized framework fix back upstream without git history conflicts.
