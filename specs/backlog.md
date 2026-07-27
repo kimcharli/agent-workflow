@@ -23,7 +23,7 @@ duck the budget. Tracked in `specs/improvements.md`.
 ## Automated friction logging script for agent self-correction
 
 Deferred: 2026-07-26
-Area: `scripts/`, `specs/proposals.md`, `AGENTS.md`
+Area: `scripts/`, `specs/improvements.md`, `AGENTS.md`
 Why not now: Requires standardizing the error formats agents produce and ensuring agents can reliably execute the logging script without getting stuck in a loop. Manual logging is sufficient while the user base is small.
 Revisit when: The manual friction logging process becomes a bottleneck, or when agents consistently demonstrate the ability to self-diagnose and log their own execution errors upon human interruption.
 
