@@ -1,0 +1,56 @@
+name: Friction report
+description: Something in the agent contract caused friction in a repository using it.
+title: "friction: "
+labels: ["friction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste anything from a private repository. Promotion into the
+        portable layer carries structure and reasoning upward, never content — if the
+        problem cannot be described without naming your project, its files, or its
+        domain, then it is a local lesson and belongs in that repository's own
+        `specs/improvements.md`.
+
+  - type: textarea
+    id: friction
+    attributes:
+      label: What happened
+      description: The friction itself, concretely, in portable terms. What the agent did, and what you had to correct.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rule
+    attributes:
+      label: Proposed change to the portable layer
+      description: The smallest change to AGENTS.md, a template, or a check that would have prevented it. If it cannot be phrased without naming something specific to one repository, it is a local lesson.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: strikes
+    attributes:
+      label: Has this fired in a second repository?
+      description: A lesson from one repository is Watching at framework level. It is promoted only after a second repository hits the same friction — that is what stops one repository's quirk becoming everyone's rule. Do not name the repositories.
+      options:
+        - "No — one repository so far"
+        - "Yes — two or more repositories"
+    validations:
+      required: true
+
+  - type: textarea
+    id: cheaper
+    attributes:
+      label: Could this be mechanized instead?
+      description: Adding a rule is the last resort, because it is the only resolution that makes the contract longer. Could a check, test, or guard enforce this instead? If a rule really is needed and the file is at its cap, say what it should delete or merge to pay for the lines.
+    validations:
+      required: true
+
+  - type: input
+    id: retires
+    attributes:
+      label: What would retire this rule?
+      description: Usually "when a check enforces this". A rule with no retirement condition is permanent by accident.
+    validations:
+      required: true

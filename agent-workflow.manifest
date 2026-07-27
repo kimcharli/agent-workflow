@@ -1,0 +1,37 @@
+# agent-workflow portable layer manifest
+#
+# The definitive list of what the portable layer is. An installer or upgrader reads
+# this rather than hardcoding paths, so the framework can gain or move a file without
+# every tool breaking silently. scripts/agent-workflow-check.sh reads it too, so the
+# manifest is the single source of these paths rather than a second copy of them.
+#
+# Format: whitespace-separated columns, one entry per line. '#' begins a comment.
+#
+#   kind    verbatim  copied unchanged, and replaced wholesale on upgrade
+#           skeleton  copied once as a starting point, then owned by the consuming
+#                     repository and never overwritten by an upgrade
+#
+#   source  path in the framework repository. Skeleton sources live under template/
+#           and do not exist in a consuming repository, so a tool reading this file
+#           in a consumer must expect them to be absent.
+#
+#   dest    path in the consuming repository.
+#
+#   flags   comma-separated, '-' for none.
+#             gate  the source is subject to the genericity gate.
+#
+# Only sources are gated, never destinations: destinations in a consuming repository
+# are per-repo content, where a hostname is configuration rather than a defect. Files
+# that implement the checks are not gated either, since they necessarily contain the
+# patterns the gate rejects.
+#
+# kind      source                                dest                                  flags
+verbatim    AGENTS.md                             AGENTS.md                             gate
+verbatim    agent-workflow.manifest               agent-workflow.manifest               -
+verbatim    scripts/agent-workflow-check.sh       scripts/agent-workflow-check.sh       -
+verbatim    .github/workflows/agent-workflow.yml  .github/workflows/agent-workflow.yml  -
+skeleton    template/specs/NEXT.md                specs/NEXT.md                         gate
+skeleton    template/specs/project.md             specs/project.md                      gate
+skeleton    template/specs/decisions.md           specs/decisions.md                    gate
+skeleton    template/specs/improvements.md        specs/improvements.md                 gate
+skeleton    template/specs/backlog.md             specs/backlog.md                      gate
