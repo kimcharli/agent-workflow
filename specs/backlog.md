@@ -19,3 +19,24 @@ consumer deletes — and deleting it means deleting the script that carries the 
 The prose mitigation may be enough.
 Revisit when: rules are observed migrating out of `AGENTS.md` into `specs/project.md` to
 duck the budget. Tracked in `specs/improvements.md`.
+
+## Automated friction logging script for agent self-correction
+
+Deferred: 2026-07-26
+Area: `scripts/`, `specs/proposals.md`, `AGENTS.md`
+Why not now: Requires standardizing the error formats agents produce and ensuring agents can reliably execute the logging script without getting stuck in a loop. Manual logging is sufficient while the user base is small.
+Revisit when: The manual friction logging process becomes a bottleneck, or when agents consistently demonstrate the ability to self-diagnose and log their own execution errors upon human interruption.
+
+## LLM-optimized strict context boundaries in spec files
+
+Deferred: 2026-07-26
+Area: `template/specs/`
+Why not now: Current prose-heavy markdown is still highly readable for humans and hasn't explicitly broken agent context windows across multiple repositories yet. Adding strict XML-style tags or rigid heading hierarchies might reduce the natural readability of the contract.
+Revisit when: Agents consistently conflate context (e.g., confusing deferred backlog tasks with active architectural requirements) while scanning across the multiple spec files.
+
+## Shift agent-workflow CI checks to local Git pre-commit hooks
+
+Deferred: 2026-07-26
+Area: `scripts/`, local `.git/hooks/`
+Why not now: It introduces a dependency on local git configuration and might disrupt human developers' workflows if they aren't accustomed to strict local commit hooks rejecting their work. 
+Revisit when: Remote CI pipeline failures (caused by agents bloating `AGENTS.md` past the line cap) become frequent enough that the delayed feedback loop is noticeably slowing down development.
