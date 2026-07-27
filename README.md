@@ -18,12 +18,14 @@ init step — an agent opening the repo finds everything it needs already there.
 - **Three CI checks** — POSIX shell, no toolchain, that stop the contract rotting: paths
   that dangle, a file that grows past the point anyone reads it, repo-specific detail
   leaking into the portable parts.
+- **A manifest** — `agent-workflow.manifest` names every file that ships and whether it is
+  copied verbatim or is a skeleton you then own, so installing and upgrading never depends
+  on a hardcoded list of paths.
 
 ## Install
 
-See [`docs/framework.md`](docs/framework.md#installing). Roughly: copy `AGENTS.md`, the
-`template/specs/` skeletons, the check script and the workflow; fill in `specs/project.md`
-and `specs/NEXT.md`; run the check; commit.
+See [`docs/framework.md`](docs/framework.md#installing). Roughly: copy what the manifest
+lists, fill in `specs/project.md` and `specs/NEXT.md`, run the check, commit.
 
 ## The idea
 
@@ -55,3 +57,8 @@ samples. Not yet used anywhere else, so the cross-repo half of the design is unt
 Friction from a repository using the framework is the point of the whole thing — open a
 friction report. Please don't include anything from a private repository: promotion carries
 structure and reasoning upward, never content.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE). Copying this into your own repository is the intended use,
+not a tolerated one.

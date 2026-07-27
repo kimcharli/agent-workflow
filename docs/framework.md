@@ -11,7 +11,7 @@ Everything in a repository using this framework is in one of two layers.
 | | Portable layer | Per-repo layer |
 | --- | --- | --- |
 | Owned by | this repository | the consuming repository |
-| Contains | `AGENTS.md`, the *structure* of `specs/`, the checks | the *contents* of `specs/` |
+| Contains | `AGENTS.md`, the *structure* of `specs/`, the checks, the manifest | the *contents* of `specs/` |
 | On install | copied largely unchanged | filled in from the skeletons |
 | On upgrade | replaced from a newer tag | never touched |
 
@@ -32,6 +32,30 @@ plaintext credential is a defect in any repository, and nothing about this bound
 it acceptable in the per-repo layer. The two axes are unrelated; the check script rejects
 credential-shaped content in the portable layer because it would also be *specific*, not
 because the per-repo layer is a safe place for it.
+
+## The manifest
+
+`agent-workflow.manifest` at the repository root enumerates the portable layer: every
+path that ships, whether it is copied **verbatim** or is a **skeleton** the consumer then
+owns, and where it lands in a consuming repository.
+
+It exists so that nothing installing or upgrading the framework has to hardcode a path.
+Hardcoded lists break silently every time the framework gains a file — the installer
+succeeds, and the consumer is simply missing something nobody notices until it matters.
+
+It is not an extra file for its own sake: `scripts/agent-workflow-check.sh` reads it too,
+for the genericity gate's file list and for checking that the declared shape matches what
+is on disk. The paths are declared once, in one place, rather than repeated across a check
+script and a tool.
+
+The `verbatim` / `skeleton` distinction is what makes mechanical upgrade possible at all.
+Verbatim entries are replaced wholesale on upgrade. Skeleton entries are copied once and
+never touched again — they become the consumer's `specs/`, which is the per-repo layer and
+therefore not the framework's to overwrite.
+
+The manifest is itself portable, so it travels into consumers. Skeleton *sources* live
+under `template/`, which does not, so a tool reading the manifest in a consuming repository
+must expect source paths to be absent while destination paths are present.
 
 ## The improvement loop
 
@@ -102,17 +126,20 @@ deliberately provides nowhere to name a repository.
 
 ## Installing
 
-Copy the portable layer into the target repository:
+Copy the portable layer, driven by the manifest rather than by a hardcoded list:
 
 ```sh
 git clone https://github.com/kimcharli/agent-workflow /tmp/agent-workflow
 cd /path/to/your/repo
 
-cp /tmp/agent-workflow/AGENTS.md .
-cp -r /tmp/agent-workflow/template/specs .
-mkdir -p scripts .github/workflows
-cp /tmp/agent-workflow/scripts/agent-workflow-check.sh scripts/
-cp /tmp/agent-workflow/.github/workflows/agent-workflow.yml .github/workflows/
+sed 's/#.*//' /tmp/agent-workflow/agent-workflow.manifest |
+	grep -v '^[[:space:]]*$' |
+	while read -r kind src dest flags; do
+		# never overwrite a skeleton the repository already owns
+		[ "$kind" = skeleton ] && [ -e "$dest" ] && continue
+		mkdir -p "$(dirname "$dest")"
+		cp "/tmp/agent-workflow/$src" "$dest"
+	done
 ```
 
 Then fill in `specs/project.md` — its **Verification** section especially, since
@@ -128,6 +155,11 @@ sh scripts/agent-workflow-check.sh
 Note what does **not** get copied: `template/` itself, `docs/`, and the issue template.
 Consumers hold the framework, not the framework's own source of truth.
 
+The framework is MIT licensed, which is what makes copying it into your repository legal
+as well as intended. MIT asks that the notice travel with copies; the least intrusive way
+to honour that is a line crediting `agent-workflow (MIT)` in your `specs/project.md` or a
+`NOTICE` file. Do not copy this repository's `LICENSE` over your own.
+
 ## Versioning and upgrading
 
 The framework is versioned with semver and tagged in this repository. A consumer records
@@ -141,11 +173,14 @@ Rough semantics: **patch** for wording, **minor** for a new rule or check, **maj
 anything that requires a consumer to change its `specs/` — a renamed spec file or a
 renamed heading the contract depends on.
 
-To upgrade, read the marker, then read the delta and apply it by hand:
+To upgrade, read the marker, then read the delta and apply it by hand. The manifest tells
+you which paths are in scope, and which of them an upgrade may touch at all — `verbatim`
+entries are replaceable, `skeleton` entries are the consumer's and are not:
 
 ```sh
 cd /tmp/agent-workflow && git fetch --tags
-git diff v1.0.0 v1.1.0 -- AGENTS.md template/ scripts/ .github/workflows/
+git diff v1.0.0 v1.1.0 -- $(sed 's/#.*//' agent-workflow.manifest |
+	grep -v '^[[:space:]]*$' | awk '$1 == "verbatim" { print $2 }')
 ```
 
 To check whether a consumer has locally edited its portable layer — worth knowing before
@@ -162,24 +197,52 @@ not be right elsewhere probably belongs in `specs/`.
 v1 ships no upgrade tooling on purpose. See `specs/decisions.md` for the reasoning and
 `specs/backlog.md` for the condition that would revisit it.
 
+## Stability guarantees for external tooling
+
+Delivery tooling is expected to live elsewhere — a skill or action that opens a **pull
+request** against a consuming repository to install or upgrade, so the review gate lands on
+the PR and local edits to the portable layer surface as diff conflicts rather than being
+silently overwritten. The same tooling is expected to run in reverse, reading a consumer's
+`specs/improvements.md` and filing a scrubbed, repository-anonymous friction report here.
+
+None of that belongs in this repository. What this repository owes such a tool is that the
+things it depends on do not move without a major version:
+
+| Surface | Guarantee |
+| --- | --- |
+| `agent-workflow.manifest` | Path, column order (`kind source dest flags`), and the `verbatim` / `skeleton` values are stable. New flags may be added; unknown flags must be ignored, not treated as errors. |
+| Version marker | Exactly `<!-- agent-workflow: vX.Y.Z -->` on the last line of `AGENTS.md`. Greppable with a fixed pattern. |
+| Drift detection | A consumer's `verbatim` entries are byte-identical to the tagged originals unless locally edited, so a plain `diff` is sufficient and no normalisation is needed. |
+| Friction report intake | The field `id`s in `.github/ISSUE_TEMPLATE/friction-report.yml` — `friction`, `rule`, `strikes`, `cheaper`, `retires` — are stable so a tool can populate the form. There is deliberately no field for a repository, organisation, or person name: the form cannot be used to carry consumer content upward even by accident. |
+| Check script | Runs from the repository root, no arguments, exits non-zero on any failure. Safe to use as the gate on a generated pull request. |
+
+The manifest's `skeleton` kind is the load-bearing part for an upgrader: it is the machine-
+readable statement of which files the framework may replace and which belong to the
+consumer. An upgrade that touches a `skeleton` destination is a bug.
+
 ## The checks
 
 `scripts/agent-workflow-check.sh` is POSIX shell with no dependency on any language
 toolchain, because consumers are in many languages and a check they cannot run is a check
-they will delete.
+they will delete. Every file list it uses comes from the manifest.
 
-1. **Referenced paths resolve.** Fails if `AGENTS.md` or any spec file names a `specs/` or
+1. **The manifest describes reality.** Fails if a declared path is missing, an entry is
+   malformed, or a file exists in `specs/` or `template/specs/` without being declared.
+   The manifest is load-bearing for anything that installs or upgrades the framework, and a
+   wrong entry there fails in someone else's repository rather than in this one. This also
+   subsumes template/instance parity: adding a skeleton without a live spec, or the
+   reverse, fails here.
+2. **Referenced paths resolve.** Fails if `AGENTS.md` or any spec file names a `specs/` or
    `docs/` file that does not exist. This is not hypothetical: it is motivated by an agent
    contract shipped with every path dangling, which silently disabled every rule that
    depended on them and which nothing else would ever have caught.
-2. **Line budget.** Fails if `AGENTS.md` exceeds 150 lines, with an error naming the
+3. **Line budget.** Fails if `AGENTS.md` exceeds 150 lines, with an error naming the
    ratchet, since an error that only reports a number invites raising the number.
-3. **Genericity gate.** Fails on IPv4 literals or credential-shaped assignments in the
+4. **Genericity gate.** Fails on IPv4 literals or credential-shaped assignments in the
    portable layer. Intent decays; this is what keeps the layer generic in practice rather
-   than aspirationally. Its scope is `AGENTS.md` and `template/` only — see
-   `specs/decisions.md`.
-4. **Template/instance parity.** Fails if `template/specs/` and `specs/` hold different
-   files. This one is specific to this repository, where both directories exist.
+   than aspirationally. Scope is the manifest entries flagged `gate`, and applies to
+   sources only — a destination in a consuming repository is per-repo content, where a
+   hostname is configuration rather than a defect.
 
 ## Dogfooding
 
