@@ -107,6 +107,16 @@ exists; it makes the manifest the only copy. The verbatim/skeleton distinction i
 an upgrader actually needs: it is the machine-readable statement of which files the
 framework may replace and which belong to the consumer.
 
+The manifest lists itself, so it ships into consumers too. This is not self-reference for
+its own sake: an upgrade needs to know the shape of the version the consumer is *currently*
+on, and a file that the framework dropped between two versions can only be found from the
+old manifest. Reading only the new version's manifest would leave such files behind
+forever.
+
+`LICENSE`, `README.md`, `docs/`, this repository's `specs/`, and the issue template are
+deliberately absent. They belong to this repository. A consumer holds the framework, not
+the framework's own source of truth.
+
 ## The framework is MIT licensed
 
 Date: 2026-07-26
